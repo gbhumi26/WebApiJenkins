@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        AZURE_CREDENTIALS_ID = 'azure-service-principal'
+        AZURE_CREDENTIALS_ID = 'jenkins-pipeline-sp'
         RESOURCE_GROUP = 'newjenkins'
         APP_SERVICE_NAME = 'https://github.com/Cloud-Authority/WebApiJenkins'
     }

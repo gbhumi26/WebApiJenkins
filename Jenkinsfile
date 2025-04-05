@@ -1,33 +1,65 @@
+// For terraform
 pipeline {
     agent any
+
+    environment {
+        ARM_CLIENT_ID       = credentials('AZURE_CLIENT_ID')
+        ARM_CLIENT_SECRET   = credentials('AZURE_CLIENT_SECRET')
+        ARM_SUBSCRIPTION_ID = credentials('AZURE_SUBSCRIPTION_ID')
+        ARM_TENANT_ID       = credentials('AZURE_TENANT_ID')
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/gbhumi26/WebApiJenkins'
+                git url: 'https://github.com/gbhumi26/WebApiJenkins.git', branch: 'master'
             }
         }
-        stage('Your Other Stages...') { // Add your other build, test, etc. stages here
+
+        stage('Terraform Init') {
             steps {
-                // ... your other steps ...
+                bat 'terraform init'
             }
         }
-        stage('Deploy to Azure (Example)') { // Example stage where you might use Azure credentials
+
+        stage('Terraform Plan') {
             steps {
-                withCredentials([azureServicePrincipal('azure-service-principal')]) {
-                    script {
-                        echo "Tenant ID: $AZURE_CREDENTIALS_TEN"
-                        echo "Client ID: $AZURE_CREDENTIALS_USR"
-                        echo "Client Secret: $AZURE_CREDENTIALS_PSW"
+                bat '''
+                    terraform plan ^
+                      -var client_id=%ARM_CLIENT_ID% ^
+                      -var client_secret=%ARM_CLIENT_SECRET% ^
+                      -var tenant_id=%ARM_TENANT_ID% ^
+                      -var subscription_id=%ARM_SUBSCRIPTION_ID%
+                    '''
+            }
+        }
 
-                        // Now you can use these variables in your Azure CLI or Terraform commands
-                        // Example Azure CLI login:
-                        // sh "az login --service-principal -u $AZURE_CREDENTIALS_USR -p $AZURE_CREDENTIALS_PSW --tenant $AZURE_CREDENTIALS_TEN"
-
-                        // Example Terraform command (assuming you're in the terraform directory):
-                        // sh "terraform init -backend-config=\"tenant_id=$AZURE_CREDENTIALS_TEN\" -backend-config=\"subscription_id=$AZURE_CREDENTIALS_SID\" -backend-config=\"client_id=$AZURE_CREDENTIALS_USR\" -backend-config=\"client_secret=$AZURE_CREDENTIALS_PSW\""
-                    }
+        stage('Terraform Apply') {
+            steps {
+                bat '''
+                terraform apply -auto-approve ^
+                  -var client_id=%ARM_CLIENT_ID% ^
+                  -var client_secret=%ARM_CLIENT_SECRET% ^
+                  -var tenant_id=%ARM_TENANT_ID% ^
+                  -var subscription_id=%ARM_SUBSCRIPTION_ID%
+                '''
+            }
+        }
+         stage('Build .NET App') {
+            steps {
+                dir('WebApiJenkins') { // Adjust to your .NET project folder
+                    bat 'dotnet publish -c Release -o publish'
                 }
             }
         }
+
+        stage('Deploy to Azure') {
+            steps {
+                bat '''
+                powershell Compress-Archive -Path WebApiJenkins\\publish\\* -DestinationPath publish.zip -Force
+                az webapp deployment source config-zip --resource-group jenkins-palak-rg --name jenkins-palak-app123 --src publish.zip
+                '''
+            }
+        }   
     }
 }

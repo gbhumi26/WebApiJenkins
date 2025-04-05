@@ -21,7 +21,7 @@ variable "subscription_id" {
 variable "resource_group_name" {
   description = "Name of the resource group"
   type        = string
-  default     = "jenkins-palak-rg"
+  default     = "jenkins-bhoomi-rg"
 }
 
 variable "location" {
@@ -33,11 +33,11 @@ variable "location" {
 variable "app_service_plan_name" {
   description = "App Service Plan name"
   type        = string
-  default     = "jenkins-palak-plan"
+  default     = "jenkins-bhoomi-plan"
 }
 
 variable "app_service_name" {
   description = "App Service (Web App) name"
   type        = string
-  default     = "jenkins-palak-app123"
+  default     = "jenkins-bhoomi-app123"
 }
